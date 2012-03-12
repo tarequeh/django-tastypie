@@ -1807,6 +1807,8 @@ class ModelResource(Resource):
         """
         A ORM-specific implementation of ``obj_update``.
         """
+        is_bundle_fully_hydrated = False
+
         if not bundle.obj or not bundle.obj.pk:
             # Attempt to hydrate data from kwargs before doing a lookup for the object.
             # This step is needed so certain values (like datetime) will pass model validation.
@@ -1823,6 +1825,8 @@ class ModelResource(Resource):
                         lookup_kwargs[key] = getattr(bundle.obj, key)
                     else:
                         del lookup_kwargs[key]
+
+                is_bundle_fully_hydrated = True
             except:
                 # if there is trouble hydrating the data, fall back to just
                 # using kwargs by itself (usually it only contains a "pk" key
@@ -1834,7 +1838,8 @@ class ModelResource(Resource):
             except ObjectDoesNotExist:
                 raise NotFound("A model instance matching the provided arguments could not be found.")
 
-        bundle = self.full_hydrate(bundle)
+        if not is_bundle_fully_hydrated:
+            bundle = self.full_hydrate(bundle)
 
         # Save FKs just in case.
         self.save_related(bundle)
